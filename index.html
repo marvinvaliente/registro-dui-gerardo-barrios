@@ -828,42 +828,31 @@ function comprimirImagen(b64DataUrl, maxWidth, calidad) {
   });
 }
 
+async function enviar(payload) {
+  await fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(payload)
+  });
+}
+
 async function syncToSheets(dui) {
   const r = registros[dui];
   if (!r) return;
 
-  // Paso 1: enviar datos sin fotos
-  const payloadSinFotos = Object.assign({}, r, {
-    fotoFrente_b64: null,
-    fotoReverso_b64: null
-  });
+  // Paso 1: datos sin fotos
+  await enviar(Object.assign({}, r, { fotoFrente_b64: null, fotoReverso_b64: null }));
 
-  await fetch(APPS_SCRIPT_URL, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify(payloadSinFotos)
-  });
-
-  // Paso 2: enviar fotos comprimidas por separado
+  // Paso 2: foto frente comprimida
   if (r.fotoFrente_b64) {
-    const frenteComprimido = await comprimirImagen(r.fotoFrente_b64, 600, 0.5);
-    await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ dui: r.dui, lado: 'FRENTE', b64: frenteComprimido, _tipo: 'foto' })
-    });
+    const b64 = await comprimirImagen(r.fotoFrente_b64, 800, 0.6);
+    await enviar({ dui: r.dui, lado: 'FRENTE', b64, _tipo: 'foto' });
   }
 
+  // Paso 3: foto reverso comprimida
   if (r.fotoReverso_b64) {
-    const reversoComprimido = await comprimirImagen(r.fotoReverso_b64, 600, 0.5);
-    await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ dui: r.dui, lado: 'REVERSO', b64: reversoComprimido, _tipo: 'foto' })
-    });
+    const b64 = await comprimirImagen(r.fotoReverso_b64, 800, 0.6);
+    await enviar({ dui: r.dui, lado: 'REVERSO', b64, _tipo: 'foto' });
   }
 }
 
